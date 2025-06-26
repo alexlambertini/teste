@@ -1,0 +1,42 @@
+@use "breakpoints" as media;
+
+.container {
+  --gutter-x: 1rem;
+  width: 100%;
+  max-width: 1440px;
+  padding-right: var(--gutter-x, 0.75rem);
+  padding-left: var(--gutter-x, 0.75rem);
+  margin-right: auto;
+  margin-left: auto;
+  margin-bottom: 1rem;
+
+  @include media.breakpoint(sm) {
+    --gutter-x: 2rem;
+  }
+
+  @include media.breakpoint(xl) {
+    --gutter-x: 1.2rem;
+  }
+}
+
+.container-full-mobile {
+  width: 100%;
+
+  @include media.breakpoint(sm) {
+    --gutter-x: 1rem;
+    width: 100%;
+    max-width: 1440px;
+    padding-right: var(--gutter-x, 0.75rem);
+    padding-left: var(--gutter-x, 0.75rem);
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  @include media.breakpoint(sm) {
+    --gutter-x: 2rem;
+  }
+
+  @include media.breakpoint(xl) {
+    --gutter-x: 1.2rem;
+  }
+}

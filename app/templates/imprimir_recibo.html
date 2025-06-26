@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Imprimir Recibo</title>
+  </head>
+  <body>
+    <h2>Impressão de Recibo</h2>
+
+    <label for="cliente">Selecione um cliente:</label>
+    <select id="cliente">
+      <option value="">Carregando...</option>
+    </select>
+
+    <button id="imprimir-btn">Imprimir Recibo</button>
+
+    <script>
+      // Função para pegar o CSRF Token do cookie
+      function getCSRFToken() {
+        let csrfToken = document.cookie.match(/csrftoken=([^;]+)/);
+        return csrfToken ? csrfToken[1] : null;
+      }
+
+      // Função para carregar os clientes
+      async function carregarClientes() {
+        try {
+          let response = await fetch("http://localhost:3000/work/api/ativados");
+          if (!response.ok) {
+            throw new Error("Erro ao carregar clientes.");
+          }
+          let data = await response.json();
+
+          let select = document.getElementById("cliente");
+          select.innerHTML = ""; // Limpa opções antigas
+
+          if (data.length === 0) {
+            let option = document.createElement("option");
+            option.textContent = "Nenhum cliente encontrado";
+            select.appendChild(option);
+            return;
+          }
+
+          // Adiciona as opções dos clientes
+          data.forEach((cliente) => {
+            let option = document.createElement("option");
+            option.value = JSON.stringify(cliente); // Salva o objeto como string
+            option.textContent = `${cliente.nome} ${cliente.sobrenome} - ${cliente.empresa}`;
+            select.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Erro ao carregar clientes:", error);
+          alert("Erro ao carregar os clientes. Tente novamente.");
+        }
+      }
+
+      // Lidar com o clique no botão de imprimir
+      document.getElementById("imprimir-btn").addEventListener("click", async function () {
+        let select = document.getElementById("cliente");
+        let clienteSelecionado = select.value ? JSON.parse(select.value) : null;
+
+        if (!clienteSelecionado) {
+          alert("Selecione um cliente antes de imprimir.");
+          return;
+        }
+
+        let dadosImpressao = {
+          dados: [
+            {
+              nome: clienteSelecionado.nome,
+              sobrenome: clienteSelecionado.sobrenome,
+              tecnicos: clienteSelecionado.tecnicos,
+              taxa: clienteSelecionado.taxa,
+              data_ativacao: clienteSelecionado.data_ativacao,
+              empresa: clienteSelecionado.empresa,
+              tecnologia: clienteSelecionado.tecnologia,
+              isento: clienteSelecionado.isento,
+            },
+          ],
+        };
+
+        let csrfToken = getCSRFToken(); // Pega o CSRF Token do cookie
+        if (!csrfToken) {
+          alert("CSRF Token não encontrado!");
+          return;
+        }
+
+        try {
+          let response = await fetch("http://localhost:3000/work/api/imprimir-recibo/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken, // Envia o token no cabeçalho
+            },
+            body: JSON.stringify(dadosImpressao),
+          });
+
+          if (!response.ok) {
+            throw new Error("Erro ao imprimir o recibo.");
+          }
+
+          let texto = await response.json(); // Obter a resposta como JSON
+          alert(texto.status || "Recibo impresso com sucesso!"); // Exibe a resposta
+        } catch (error) {
+          console.error("Erro ao imprimir:", error);
+          alert("Erro ao imprimir o recibo. Tente novamente.");
+        }
+      });
+
+      // Função para garantir que recorder_opt está definido
+      window.addEventListener("beforeunload", function () {
+        var recorder_opt = recorder_opt || {}; // Define um objeto vazio caso recorder_opt seja indefinido
+      });
+
+      // Carregar os clientes assim que a página abrir
+      carregarClientes();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,199 @@
+@use "reset";
+@use "nav";
+@use "container";
+@use "cards";
+@use "mixins";
+@use "fonts" as font;
+@use "charts";
+@use "login";
+@use "forms";
+
+/**************************************************************
+# 
+#   VARIABLES ROOT
+#  
+/**************************************************************/
+
+:root {
+  --primary-color: #003867;
+  --background-color: #f2f5fa;
+  --text-color: #565656;
+  --light-blue: #0f90fd;
+  --white-color: #f2f5fa;
+  --ligth-blue-highlight: oklch(from var(--light-blue) calc(l + 0.1) calc(c + 0.1) calc(h + 0.2));
+  --radius: 15px;
+  --radius-mobile: 10px;
+  --color-green: #45d820;
+  --color-red: rgb(222, 43, 43);
+}
+
+.container-block {
+  gap: 2rem;
+  @include mixins.responsive-columns(250px, 1fr);
+}
+
+body {
+  // #EEF1F5;
+  // #ececec;
+  background-color: #ebeef3;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  span {
+    gap: 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.sucefull-color {
+  color: var(--color-green);
+  fill: var(--color-green);
+}
+
+.error-color {
+  color: var(--color-red);
+  fill: var(--color-red);
+}
+
+.btn-add {
+  background-color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  @include font.font-size(1rem, 1.1rem);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #ebebeb;
+  fill: #666;
+  transition: all ease 200ms;
+
+  &:hover {
+    background-color: #23262f;
+    color: white;
+    fill: white;
+  }
+}
+
+/* Estilo para o overlay de fundo */
+.fixed.inset-0.bg-black.bg-opacity-50 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Cor semitransparente */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Garantir que fique acima de outros elementos */
+}
+
+/* Estilo para o conteúdo do modal */
+.bg-white.p-4.rounded-lg {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px; /* Limite de largura */
+  position: relative;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Adicionando sombra */
+}
+
+/* Botão de fechar */
+.absolute.top-2.right-2.text-xl.cursor-pointer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Efeitos de transição */
+.x-show {
+  display: none;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.x-show[x-cloak] {
+  display: block !important;
+}
+
+.x-transition-enter,
+.x-transition-leave {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.x-transition-enter-start,
+.x-transition-leave-end {
+  opacity: 0;
+}
+
+.x-transition-enter-end,
+.x-transition-leave-start {
+  opacity: 1;
+}
+
+/* Adicionando o efeito de escurecimento do fundo */
+.backdrop {
+  backdrop-filter: blur(4px); /* Adicionando filtro de desfoque */
+}
+
+/* Ajustes no conteúdo do formulário */
+
+.avatar {
+  $size: 40px;
+  $colors: #3498db, #e74c3c, #2ecc71, #f39c12, #9b59b6, #1abc9c, #d35400, #34495e;
+
+  font-size: 20px;
+  width: $size;
+  height: $size;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-transform: uppercase;
+  margin-right: 0.6rem;
+
+  @for $i from 1 through length($colors) {
+    &.color-#{$i} {
+      background-color: nth($colors, $i);
+    }
+  }
+}
+
+.box-shadown {
+  $shadownColor: #d0dbe8;
+  -webkit-box-shadow: 0px 0px 7px 0px $shadownColor;
+  -moz-box-shadow: 0px 0px 7px 0px $shadownColor;
+  box-shadow: 0px 0px 7px 0px $shadownColor;
+}
+
+.col-2 {
+  @include mixins.responsive-columns(250px, 1fr);
+  gap: 1rem;
+}
+
+.mt-4 {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: end;
+}
+
+.bg-ligth {
+  background-color: #e8f4ff;
+  padding: 0.5rem 0.6rem;
+  border-radius: 5px;
+  border: 0;
+}

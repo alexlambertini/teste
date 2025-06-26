@@ -1,0 +1,471 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+
+<div x-data="app" x-init="init()">
+  <!-- MODAL DE ATIVAÇÃO -->
+  <div
+    x-data="modalAtivacao"
+    x-show="isVisible"
+    @keydown.escape.window="close()"
+    class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+    x-cloak
+  >
+    <div
+      class="absolute inset-0 bg-black bg-opacity-50 opacity-0"
+      x-show="isVisible"
+      x-transition.opacity
+    ></div>
+
+    <div
+      x-show="isVisible"
+      x-transition
+      class="bg-white p-4 rounded-lg max-w-lg w-full relative form"
+    >
+      <span @click.stop="close()" class="absolute top-2 right-2 text-xl cursor-pointer"
+        >&times;</span
+      >
+
+      <form @submit.prevent="submit()">
+        <!-- Nome / Sobrenome -->
+        <div class="col-2">
+          <div>
+            <label for="nome">Nome:</label>
+            <input
+              type="text"
+              id="nome"
+              x-model="$store.app.formData.nome"
+              @blur="$store.app.checkNomeCompletoUnico()"
+              :class="{'border-red-500': $store.app.nomeError, 'input': true}"
+              class="input"
+              required
+            />
+          </div>
+          <div>
+            <label for="sobrenome">Sobrenome:</label>
+            <input
+              type="text"
+              id="sobrenome"
+              x-model="$store.app.formData.sobrenome"
+              @blur="$store.app.checkNomeCompletoUnico()"
+              class="input"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Empresa / Tecnologia -->
+        <div>
+          <label for="empresa">Empresa:</label>
+          <select id="empresa" x-model="$store.app.formData.empresa" class="input" required>
+            <option value="">Selecionar</option>
+            <option value="honest">Honest</option>
+            <option value="solunet">Solunet</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="tecnologia">Tecnologia:</label>
+          <select id="tecnologia" x-model="$store.app.formData.tecnologia" class="input" required>
+            <option value="">Selecionar</option>
+            <option value="radio">Rádio</option>
+            <option value="fibra">Fibra</option>
+          </select>
+        </div>
+
+        <!-- Técnicos -->
+        <div>
+          <label for="tecnicos">Técnicos:</label>
+          <select
+            id="tecnicos"
+            x-model="$store.app.formData.tecnicos"
+            class="input"
+            multiple
+            required
+          >
+            <template x-for="(tecnico, index) in $store.app.tecnicos" :key="tecnico.id">
+              <option
+                :value="String(tecnico.id)"
+                x-text="tecnico.nome + ' ' + tecnico.sobrenome"
+                :selected="$store.app.formData.tecnicos.includes(String(tecnico.id))"
+              ></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Taxa / Isento -->
+        <div x-show="!$store.app.formData.isento">
+          <label for="taxa">Taxa:</label>
+          <input
+            type="text"
+            id="taxa"
+            x-model="$store.app.formData.taxa"
+            class="input taxa"
+            :required="!$store.app.formData.isento"
+          />
+        </div>
+
+        <div class="isento" :class="{'bg-ligth': $store.app.formData.isento}">
+          <input type="checkbox" id="isento" x-model="$store.app.formData.isento" />
+          <label for="isento">Isento</label>
+        </div>
+
+        <!-- Data -->
+        <div>
+          <label for="data_ativacao">Data de Ativação:</label>
+          <input
+            type="date"
+            id="data_ativacao"
+            x-model="$store.app.formData.data_ativacao"
+            class="input"
+            required
+          />
+        </div>
+
+        <!-- Botão -->
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE DESATIVAÇÃO -->
+  <div
+    x-data="modalDesativacao"
+    x-show="isVisible"
+    @keydown.escape.window="close()"
+    class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+    x-cloak
+  >
+    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0" x-transition.opacity></div>
+
+    <div
+      x-show="isVisible"
+      x-transition
+      class="bg-white p-4 rounded-lg max-w-lg w-full relative form"
+    >
+      <span @click.stop="close()" class="absolute top-2 right-2 text-xl cursor-pointer"
+        >&times;</span
+      >
+
+      <form @submit.prevent="submit()">
+        <div>
+          <label for="ativado">Selecionar Ativado:</label>
+          <select
+            id="ativado"
+            x-model="$store.app.desativadoForm.ativado_id"
+            @change="$store.app.onAtivadoChange($event)"
+            class="input"
+          >
+            <option value="">Selecionar</option>
+            <template x-for="ativado in $store.app.ativados" :key="ativado.id || index">
+              <option
+                :value="ativado.id"
+                x-text="ativado.nome + ' ' + ativado.sobrenome"
+                :selected="ativado.id == $store.app.desativadoForm.ativado_id"
+              ></option>
+            </template>
+          </select>
+        </div>
+
+        <div x-show="!$store.app.desativadoForm.ativado_id">
+          <label for="nome">Nome:</label>
+          <input
+            type="text"
+            id="nome"
+            x-model="$store.app.desativadoForm.nome"
+            class="input"
+            :required="!$store.app.desativadoForm.ativado_id"
+            :disabled="!!$store.app.desativadoForm.ativado_id"
+          />
+        </div>
+
+        <div>
+          <label for="motivo">Motivo:</label>
+          <textarea
+            id="motivo"
+            x-model="$store.app.desativadoForm.motivo"
+            class="input"
+            required
+          ></textarea>
+        </div>
+
+        <div>
+          <label for="categoria">Categoria:</label>
+          <select
+            id="categoria"
+            x-model="$store.app.desativadoForm.categoria_id"
+            class="input"
+            required
+          >
+            <option value="">Selecionar</option>
+            <template x-for="categoria in $store.app.categorias" :key="categoria.id">
+              <option :value="categoria.id" x-text="categoria.nome"></option>
+            </template>
+          </select>
+        </div>
+
+        <div>
+          <label for="equipamento_retirado">Equipamento Retirado:</label>
+          <select
+            id="equipamento_retirado"
+            x-model="$store.app.desativadoForm.equipamento_retirado"
+            class="input"
+            required
+          >
+            <option value="">Selecionar</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+          </select>
+        </div>
+
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- GRÁFICO INCLÍDO -->
+  {% include "graphics.html" %}
+
+  <div class="cards-title container-block container">
+    <h1>
+      <span>
+        <svg
+          class="sucefull-color"
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 0 24 24"
+          width="24px"
+        >
+          <path d="M0 0h24v24H0V0z" fill="none" />
+          <path
+            d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"
+          />
+        </svg>
+        Ativações
+      </span>
+      {% comment %}
+      <button @click="$store.app.showModal()" class="btn-add">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
+          <path
+            d="M440-280h80v-160h160v-80H520v-160h-80v160H280v80h160v160Zm40 200q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"
+          />
+        </svg>
+        Adicionar Ativação
+      </button>
+      {% endcomment %}
+    </h1>
+
+    <div>
+      <h1>
+        <span>
+          <svg
+            class="error-color"
+            xmlns="http://www.w3.org/2000/svg"
+            height="24px"
+            viewBox="0 -960 960 960"
+            width="24px"
+          >
+            <path
+              d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"
+            />
+          </svg>
+          Desativações
+        </span>
+      </h1>
+      {% comment %}
+      <button @click.debounce.100ms="$store.app.showDesativadoModal()" class="btn-add">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 -960 960 960"
+          width="24px"
+          fill="#666666"
+        >
+          <path
+            d="M280-440h400v-80H280v80ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"
+          />
+        </svg>
+        Desativação
+      </button>
+      {% endcomment %}
+    </div>
+  </div>
+
+  <div class="container-block container">
+    <div x-show="$store.app.ativados && $store.app.ativados.length > 0">
+      <template x-for="(user, index) in $store.app.ativados" :key="index">
+        <div class="cards">
+          <div class="card-item">
+            <div class="card-item__action">
+              <div class="card-item-user">
+                <i class="fa fa-check active-color" aria-hidden="true"></i>
+                <h3 x-text="user.nome + ' ' + user.sobrenome"></h3>
+              </div>
+
+              <div x-data="{ openMenu: false }" class="relative">
+                <button @click.stop="openMenu = !openMenu" id="menuButton" class="menu-button">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="#666666">
+                    <path
+                      d="M240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400Z"
+                    />
+                  </svg>
+                </button>
+
+                <div
+                  id="menuPopup"
+                  class="menu-popup absolute bg-white shadow-md rounded-md p-2"
+                  x-show="openMenu"
+                  x-transition
+                  @click.away="openMenu = false"
+                  x-cloak
+                >
+                  <ul>
+                    <li>
+                      <button @click="$store.app.editUser(user); openMenu = false" class="btn-edit">
+                        <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                        Editar
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        @click="$store.app.imprimirRecibo(user); openMenu = false"
+                        class="btn-print"
+                      >
+                        <i class="fa fa-print" aria-hidden="true"></i>
+                        Imprimir Recibo
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        @click="$store.app.desativarUser(user); openMenu = false"
+                        class="btn-print"
+                      >
+                        <i class="fa fa-ban deactive-color" aria-hidden="true"></i>
+                        Desativar
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="card-item__content">
+              <template x-for="(tecnicoId, techIndex) in user.tecnicos" :key="techIndex">
+                <div class="card-item__tech">
+                  <div>
+                    <span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 -960 960 960"
+                        width="15px"
+                        fill="#fff"
+                      >
+                        <path
+                          d="M756-120 537-339l84-84 219 219-84 84Zm-552 0-84-84 276-276-68-68-28 28-51-51v82l-28 28-121-121 28-28h82l-50-50 142-142q20-20 43-29t47-9q24 0 47 9t43 29l-92 92 50 50-28 28 68 68 90-90q-4-11-6.5-23t-2.5-24q0-59 40.5-99.5T701-841q15 0 28.5 3t27.5 9l-99 99 72 72 99-99q7 14 9.5 27.5T841-701q0 59-40.5 99.5T701-561q-12 0-24-2t-23-7L204-120Z"
+                        ></path>
+                      </svg>
+                    </span>
+                    <p
+                      x-text="(getTecnicoById(tecnicoId)?.nome || '') + ' ' + (getTecnicoById(tecnicoId)?.sobrenome || '')"
+                    ></p>
+                  </div>
+                </div>
+              </template>
+
+              <div class="card-item__network">
+                <div>
+                  <i
+                    x-show="user.tecnologia === 'radio'"
+                    class="fa fa-signal"
+                    aria-hidden="true"
+                  ></i>
+
+                  <template x-if="user.tecnologia === 'fibra'">
+                    <svg
+                      width="24px"
+                      height="20px"
+                      viewBox="0 0 684 271"
+                      version="1.1"
+                      xmlns="http://www.w3.org/2000/svg"
+                      xmlns:xlink="http://www.w3.org/1999/xlink"
+                      xml:space="preserve"
+                      xmlns:serif="http://www.serif.com/"
+                      style="
+                        fill-rule: evenodd;
+                        clip-rule: evenodd;
+                        stroke-linejoin: round;
+                        stroke-miterlimit: 2;
+                      "
+                    >
+                      <path
+                        d="M301.628,269.197c7.353,0 13.323,-5.97 13.323,-13.323l-0,-239.809c-0,-7.353 -5.97,-13.323 -13.323,-13.323l-298.173,0l-0,266.455l298.173,0Zm107.664,-16.679c15.133,-0 27.419,-12.286 27.419,-27.419l-0,-180.761c-0,-15.132 -12.286,-27.418 -27.419,-27.418l-82.255,-0l-0,235.598l82.255,-0Zm150.284,-203.391c6.434,-8.91 16.911,-14.713 28.733,-14.713c19.551,-0 35.423,15.872 35.423,35.422c0,19.551 -15.872,35.423 -35.423,35.423c-11.822,-0 -22.299,-5.804 -28.733,-14.714l-111.032,0l-0,-41.418l111.032,-0Zm-0,131.087c6.434,-8.909 16.911,-14.713 28.733,-14.713c19.551,-0 35.423,15.872 35.423,35.423c0,19.55 -15.872,35.422 -35.423,35.422c-11.822,0 -22.299,-5.804 -28.733,-14.713l-111.032,-0l-0,-41.419l111.032,0Zm55.872,-64.903c6.393,-9.247 17.072,-15.311 29.156,-15.311c19.551,-0 35.423,15.872 35.423,35.423c0,19.55 -15.872,35.422 -35.423,35.422c-11.554,0 -21.823,-5.544 -28.292,-14.115l-167.768,-0l-0,-41.419l166.904,0Zm-10.077,85.613c-0,9.416 -7.645,17.061 -17.062,17.061c-9.416,0 -17.061,-7.645 -17.061,-17.061c-0,-9.417 7.645,-17.062 17.061,-17.062c9.417,0 17.062,7.645 17.062,17.062Zm-0,-131.088c-0,9.417 -7.645,17.062 -17.062,17.062c-9.416,-0 -17.061,-7.645 -17.061,-17.062c-0,-9.416 7.645,-17.061 17.061,-17.061c9.417,-0 17.062,7.645 17.062,17.061Zm56.295 65.587c-0,9.416 -7.645,17.061 -17.062,17.061c-9.416,0 -17.061,-7.645 -17.061,-17.061c-0,-9.417 7.645,-17.062 17.061,-17.062c9.417,0 17.062,7.645 17.062,17.062Z"
+                        style="fill: #fff"
+                      />
+                    </svg>
+                  </template>
+                  <p x-text="user.tecnologia"></p>
+                </div>
+                <div></div>
+                <strong
+                  x-text="user.isento ? '0,00' : (user.taxa !== null && user.taxa !== undefined ? user.taxa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00')"
+                ></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div x-show="$store.app.desativados && $store.app.desativados.length > 0">
+      <template x-for="(user, index) in $store.app.desativados" :key="index">
+        <div class="cards">
+          <div class="card-item">
+            <div class="card-item__action">
+              <div class="card-item-user">
+                <i class="fa fa-ban deactive-color" aria-hidden="true"></i>
+                <h3 x-text="user.nome"></h3>
+              </div>
+            </div>
+            <div class="card-item__content">
+              <ul>
+                <li>
+                  <i class="fa fa-slack tecnic-color" aria-hidden="true"></i>
+                  <h5>Categoria:</h5>
+                  <p x-text="user.categoria"></p>
+                </li>
+                <li>
+                  <i class="fa fa-check-circle-o active-color" aria-hidden="true"></i>
+                  <h5>Retirado:</h5>
+                  <p x-text="user.equipamento_retirado"></p>
+                </li>
+                <li>
+                  <span>
+                    <i class="fa fa-file-text-o" aria-hidden="true"></i>
+                    <h5>Motivo:</h5>
+                  </span>
+                  <p x-text="user.motivo"></p>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'scripts/ativacoes.js' %}"></script>
+
+{% comment %}
+<script>
+  // Debug de inicialização
+  document.addEventListener("alpine:init", () => {
+    console.log("Alpine inicializado - Modais registrados:", {
+      modalAtivacao: !!Alpine.data("modalAtivacao"),
+      modalDesativacao: !!Alpine.data("modalDesativacao"),
+      app: !!Alpine.data("app"),
+    });
+  });
+</script>
+{% endcomment %} {% endblock %}

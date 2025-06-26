@@ -1,0 +1,31 @@
+// Importe o módulo `sass:math` para usar funções matemáticas
+@use "sass:math";
+
+// Função de validação
+@function validate-breakpoint($value) {
+  @if math.is-unitless($value) {
+    @error "A largura do breakpoint deve ser fornecida com uma unidade (por exemplo, px).";
+  }
+  @return $value;
+}
+
+// Definição de breakpoints
+$breakpoints: (
+  ss: validate-breakpoint(320px),
+  xs: validate-breakpoint(480px),
+  sm: validate-breakpoint(768px),
+  md: validate-breakpoint(992px),
+  lg: validate-breakpoint(1200px),
+  xl: validate-breakpoint(1600px),
+);
+
+// Mixin para breakpoints
+@mixin breakpoint($name) {
+  @if not map-has-key($breakpoints, $name) {
+    @error "O breakpoint '#{$name}' não foi encontrado em $breakpoints.";
+  }
+  $value: map-get($breakpoints, $name);
+  @media (min-width: $value) {
+    @content;
+  }
+}

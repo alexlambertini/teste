@@ -1,0 +1,392 @@
+<div class="container">
+  <div class="graphics" x-data="dashboard" x-init="fetchData()">
+    <div class="chart">
+      <div class="chart-resume">
+        <div class="box-info">
+          <h2>Instalações por Técnico:</h2>
+          <ul>
+            <template
+              x-for="([tecnico, count], index) in Object.entries(tecnicosContagem)"
+              :key="tecnico"
+            >
+              <li>
+                <!-- Avatar com inicial do técnico -->
+                <div
+                  class="avatar"
+                  :class="'color-' + ((index % 8) + 1)"
+                  x-text="tecnico.charAt(0).toUpperCase()"
+                ></div>
+
+                <!-- Nome do técnico e contagem -->
+                <strong x-text="tecnico"></strong>: <span x-text="count"></span>
+              </li>
+            </template>
+          </ul>
+        </div>
+
+        <div class="box-date">
+          <div class="box-date__info">
+            <div class="circle">
+              <svg
+                class="sucefull-color"
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 0 24 24"
+                width="24px"
+              >
+                <path d="M0 0h24v24H0V0z" fill="none" />
+                <path
+                  d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"
+                />
+              </svg>
+            </div>
+            <h3>Usuários Ativados:</h3>
+            <span x-text="usuariosAtivados"></span>
+          </div>
+
+          <div class="box-date__info">
+            <div class="circle">
+              <svg
+                class="error-color"
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+              >
+                <path
+                  d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q54 0 104-17.5t92-50.5L228-676q-33 42-50.5 92T160-480q0 134 93 227t227 93Zm252-124q33-42 50.5-92T800-480q0-134-93-227t-227-93q-54 0-104 17.5T284-732l448 448Z"
+                />
+              </svg>
+            </div>
+            <h3>Usuários Desativados:</h3>
+            <span x-text="usuariosDesativados"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container chart-tecnic">
+        <div class="pie">
+          <canvas x-ref="tecnicosChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <div class="chart-container chart-moth">
+        <canvas x-ref="mesesChart"></canvas>
+      </div>
+
+      <div class="chart-container chart-tecnology">
+        <canvas x-ref="tecnologiaChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("alpine:init", () => {
+    Alpine.data("dashboard", () => ({
+      baseUrl: "http://localhost:8000",
+      ativados: [],
+      desativados: [],
+      tecnicos: [],
+      tecnicosContagem: {},
+      mesesContagem: {},
+      tecnologiaContagem: {},
+      usuariosAtivados: 0,
+      usuariosDesativados: 0,
+      totalTaxa: 0,
+      selectedMonth: "",
+
+      // Método para formatar data
+      formatarMesAno(data) {
+        if (!data) return null;
+        // Se já for objeto Date (retornado pela API)
+        if (data instanceof Date) return data;
+        // Se for string ISO (ex: "2023-12-31")
+        if (typeof data === "string") {
+          const dt = new Date(data);
+          return isNaN(dt.getTime()) ? null : dt;
+        }
+        return null;
+      },
+
+      // Busca dados da API
+      async fetchData() {
+        try {
+          const [ativadosRes, desativadosRes, tecnicosRes] = await Promise.all([
+            fetch(`${this.baseUrl}/work/api/ativados`),
+            fetch(`${this.baseUrl}/work/api/desativados`),
+            fetch(`${this.baseUrl}/work/api/tecnicos`),
+          ]);
+
+          // Verifica se todas as respostas são OK
+          if (!ativadosRes.ok || !desativadosRes.ok || !tecnicosRes.ok) {
+            throw new Error("Erro ao buscar dados da API");
+          }
+
+          const [ativadosData, desativadosData, tecnicosData] = await Promise.all([
+            ativadosRes.json(),
+            desativadosRes.json(),
+            tecnicosRes.json(),
+          ]);
+
+          this.ativados = Array.isArray(ativadosData) ? ativadosData : [];
+          this.desativados = Array.isArray(desativadosData) ? desativadosData : [];
+          this.tecnicos = Array.isArray(tecnicosData) ? tecnicosData : [];
+
+          this.processarDados();
+          this.renderCharts();
+        } catch (error) {
+          console.error("Erro ao buscar os dados:", error);
+          alert("Erro ao carregar dados. Verifique o console para mais detalhes.");
+        }
+      },
+
+      processarDados() {
+        // Reinicializa os contadores
+        this.tecnicosContagem = {};
+        this.mesesContagem = {};
+        this.tecnologiaContagem = {};
+        this.totalTaxa = 0;
+        this.usuariosAtivados = this.ativados.length;
+        this.usuariosDesativados = this.desativados.length;
+
+        // Processa ativados
+        this.ativados.forEach((ativacao) => {
+          // Mapeia técnicos (com verificação)
+          ativacao.tecnicos = Array.isArray(ativacao.tecnicos)
+            ? ativacao.tecnicos.map((tecnicoId) => this.tecnicos.find((t) => t.id === tecnicoId))
+            : [];
+
+          // Contagem por técnico
+          ativacao.tecnicos.forEach((tecnico) => {
+            if (tecnico) {
+              const nome = `${tecnico.nome} ${tecnico.sobrenome}`;
+              this.tecnicosContagem[nome] = (this.tecnicosContagem[nome] || 0) + 1;
+            }
+          });
+
+          // Contagem por tecnologia
+          const tecnologia = ativacao.tecnologia || "Desconhecida";
+          this.tecnologiaContagem[tecnologia] = (this.tecnologiaContagem[tecnologia] || 0) + 1;
+
+          // Contagem por mês (com validação de data)
+          const data = this.formatarMesAno(ativacao.data_ativacao);
+          if (data) {
+            const mesKey = data.toISOString().split("T")[0];
+            this.mesesContagem[mesKey] = this.mesesContagem[mesKey] || {
+              ativacoes: 0,
+              desativacoes: 0,
+            };
+            this.mesesContagem[mesKey].ativacoes += 1;
+          }
+
+          // Soma da taxa (agora tratada como número)
+          if (typeof ativacao.taxa === "number") {
+            this.totalTaxa += ativacao.taxa;
+          }
+        });
+
+        // Processa desativados (para contagem mensal)
+        this.desativados.forEach((desativacao) => {
+          const data = this.formatarMesAno(desativacao.data_desativacao);
+          if (data) {
+            const mesKey = data.toISOString().split("T")[0];
+            this.mesesContagem[mesKey] = this.mesesContagem[mesKey] || {
+              ativacoes: 0,
+              desativacoes: 0,
+            };
+            this.mesesContagem[mesKey].desativacoes += 1;
+          }
+        });
+
+        // Formata o total da taxa (opcional)
+        this.totalTaxa = new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(this.totalTaxa);
+      },
+
+      renderCharts() {
+        // Destrói gráficos existentes antes de renderizar novos
+        [this.$refs.tecnicosChart, this.$refs.mesesChart, this.$refs.tecnologiaChart].forEach(
+          (chart) => {
+            if (chart && chart._chart) {
+              chart._chart.destroy();
+            }
+          }
+        );
+
+        this.renderTecnicosChart();
+        this.renderMesesChart();
+        this.renderTecnologiaChart();
+      },
+
+      renderTecnicosChart() {
+        const ctx = this.$refs.tecnicosChart;
+        if (!ctx) return;
+
+        const labels = Object.keys(this.tecnicosContagem);
+        const data = Object.values(this.tecnicosContagem);
+
+        if (labels.length === 0 || data.length === 0) {
+          console.warn("Sem dados para o gráfico de técnicos");
+          return;
+        }
+
+        // Cores aleatórias como no original
+        const colors = labels.map(() => {
+          return `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(
+            Math.random() * 256
+          )}, ${Math.floor(Math.random() * 256)}, 0.6)`;
+        });
+
+        new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels,
+            datasets: [
+              {
+                data,
+                backgroundColor: colors,
+              },
+            ],
+          },
+          options: {
+            plugins: {
+              legend: {
+                display: true,
+              },
+            },
+            layout: {
+              padding: {
+                right: 20,
+              },
+            },
+          },
+        });
+      },
+
+      renderMesesChart() {
+        const ctx = this.$refs.mesesChart;
+        if (!ctx) return;
+
+        // Ordena os meses cronologicamente
+        const sortedMonths = Object.keys(this.mesesContagem).sort();
+        const labels = sortedMonths.map((month) => {
+          const [year, monthNum] = month.split("-");
+          return new Date(year, monthNum - 1).toLocaleDateString("pt-BR", {
+            month: "short",
+            year: "numeric",
+          });
+        });
+
+        const ativacoes = sortedMonths.map((month) => this.mesesContagem[month].ativacoes || 0);
+        const desativacoes = sortedMonths.map(
+          (month) => this.mesesContagem[month].desativacoes || 0
+        );
+
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Instalações",
+                data: ativacoes,
+                backgroundColor: "rgba(54, 162, 235, 0.2)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 2,
+                tension: 0.1,
+                fill: true,
+              },
+              {
+                label: "Desativações",
+                data: desativacoes,
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                borderColor: "rgba(255, 99, 132, 1)",
+                borderWidth: 2,
+                tension: 0.1,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Quantidade",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "Mês",
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                position: "top",
+              },
+              tooltip: {
+                mode: "index",
+                intersect: false,
+              },
+            },
+          },
+        });
+      },
+
+      renderTecnologiaChart() {
+        const ctx = this.$refs.tecnologiaChart;
+        if (!ctx) return;
+
+        const labels = Object.keys(this.tecnologiaContagem);
+        const data = Object.values(this.tecnologiaContagem);
+
+        if (labels.length === 0 || data.length === 0) {
+          console.warn("Sem dados para o gráfico de tecnologias");
+          return;
+        }
+
+        // Cores originais: radio=vermelho, outras=azul
+        const backgroundColors = labels.map((tecnologia) =>
+          tecnologia === "radio" ? "rgba(255, 99, 132, 0.6)" : "rgba(54, 162, 235, 0.6)"
+        );
+
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Tecnologias utilizadas",
+                data,
+                backgroundColor: backgroundColors,
+                borderColor: backgroundColors.map((color) => color.replace("0.6", "1")),
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+      },
+    }));
+  });
+</script>

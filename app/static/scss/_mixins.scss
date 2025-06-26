@@ -1,0 +1,36 @@
+@use "breakpoints" as media;
+@use "fonts" as font;
+
+@mixin button($bg-color: var(--light-blue), $text-color: var(--primary-color)) {
+  background-color: $bg-color;
+  color: $text-color;
+  display: block;
+  border-radius: 1rem;
+  @include font.font-size(1.1rem, 1.3rem);
+  font-weight: font.$semiBold;
+  text-decoration: none;
+  padding: 0.8rem 0.5rem;
+  text-align: center;
+
+  @include media.breakpoint(md) {
+    padding: 1rem 2rem;
+    width: fit-content;
+  }
+
+  &:hover {
+    background-color: var(--ligth-blue-highlight);
+  }
+}
+
+.button--primary {
+  @include button(); // Usa as cores padrão
+}
+
+// Colunas Responssívas
+@mixin responsive-columns($min, $max) {
+  display: grid;
+  grid-template-columns: 1fr;
+  @include media.breakpoint(xs) {
+    grid-template-columns: repeat(auto-fit, minmax(#{$min}, #{$max}));
+  }
+}

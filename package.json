@@ -1,0 +1,24 @@
+{
+  "name": "ativacao",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "sass": "sass --watch app/static/scss/style.scss:app/static/css/style.css",
+    "django": "python manage.py runserver",
+    "browser-sync": "wait-on http://localhost:8000 && browser-sync start --proxy \"localhost:8000\" --files \"app/static/css/*.css\" \"app/templates/**/*.html\"",
+    "start": "concurrently \"npm run sass\" \"npm run django\" \"npm run browser-sync\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "browser-sync": "^3.0.3",
+    "concurrently": "^7.6.0",
+    "sass": "^1.83.4",
+    "wait-on": "^8.0.2"
+  },
+  "dependencies": {
+    "chartjs-adapter-date-fns": "^3.0.0"
+  }
+}

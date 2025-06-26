@@ -1,0 +1,14 @@
+.git
+.gitignore
+.DS_Store
+*.pyc
+*.log
+__pycache__
+venv/
+node_modules/      # Adicione/mantenha esta linha
+npm-debug.log
+package.json       # Adicione esta linha
+package-lock.json  # Adicione esta linha
+db.sqlite3
+mediafiles/
+staticfiles/ws
